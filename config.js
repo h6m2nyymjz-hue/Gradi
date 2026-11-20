@@ -1,19 +1,24 @@
-/* Gradi - configuration et codes d'activation (partagé par l'app et admin.html)
- *
+
+
+
+  
+    Email :
+    <a href="mailto:votre.aderssegmail.com">votre.abelagradi@icloud.com.com</a>
+  </p>
  * IMPORTANT AVANT LA MISE EN LIGNE :
- *  1. Changez SECRET par une longue phrase que vous seul connaissez.
- *  2. Mettez vos vrais numéros Mobile Money et votre numéro WhatsApp.
+ *  1.K050705r.
+ *  2. 061396141et 061396141.
  */
 const GRADI_CONFIG = {
   APP_NAME: 'Gradi',
   SLOGAN: 'Gérez votre boutique, récupérez vos dettes.',
   SECRET: 'CHANGEZ-MOI-par-une-longue-phrase-secrete-2026',
   PAY_NUMBERS: {
-    'MTN Mobile Money': '06 XXX XXXX',
-    'Airtel Money': '05 XXX XXXX'
+    'MTN Mobile Money': '06 1396141',
+    'Airtel Money': '05 6559519'
   },
-  PAY_NAME: 'Nom du titulaire du compte',
-  SUPPORT_WHATSAPP: '242060000000', // numéro WhatsApp qui reçoit les preuves de paiement
+  PAY_NAME: 'ibata ursula nynnel',
+  SUPPORT_WHATSAPP: '242061396141', //061394141 numéro WhatsApp qui reçoit les preuves de paiement
   COUNTRY_CODE: '242',
   PRICES: { standard: 7500, pro: 15000 },
   FREE_PRODUCT_LIMIT: 30,
