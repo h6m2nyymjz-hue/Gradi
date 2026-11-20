@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Gradi Admin</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>main{padding-bottom:40px}</style>
+</head>
+<body>
+  <header class="topbar"><div class="grow"><div class="brand">Gradi Admin</div><div class="shop">Générateur de codes d'activation</div></div></header>
+  <main>
+    <div class="card red small"><b>Réservé au propriétaire.</b> Ne mettez pas ce fichier en ligne avec l'application : gardez-le sur votre téléphone ou votre ordinateur.</div>
+
+    <div class="card">
+      <h2>1. Un client a payé</h2>
+      <label for="a_phone">Téléphone du client (celui saisi dans Gradi)</label>
+      <input type="tel" id="a_phone" placeholder="06 123 4567">
+      <label for="a_name">Nom de la boutique (pour votre suivi)</label>
+      <input type="text" id="a_name">
+      <div class="grid2">
+        <div><label for="a_plan">Plan</label><select id="a_plan"><option value="S">Standard</option><option value="P">Pro</option></select></div>
+        <div><label for="a_months">Durée</label><select id="a_months"><option>1</option><option>3</option><option>6</option><option>12</option></select></div>
+      </div>
+      <label for="a_ref">Référence Mobile Money reçue</label>
+      <input type="text" id="a_ref" placeholder="Pour vérifier le paiement dans votre application">
+      <button class="btn big block mt" id="gen">Générer le code</button>
+    </div>
+
+    <div class="card" id="result" style="display:none">
+      <h2>2. Code à envoyer</h2>
+      <div class="stat" id="code" style="letter-spacing:1px;word-break:break-all"></div>
+      <p class="small muted" id="info"></p>
+      <div class="grid2">
+        <button class="btn" id="copy">Copier</button>
+        <button class="btn alt" id="wa">Envoyer par WhatsApp</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Suivi (sur cet appareil)</h2>
+      <div class="grid2"><div><div class="small muted">Codes générés</div><div class="stat" id="n">0</div></div>
+      <div><div class="small muted">Encaissé</div><div class="stat" id="sum">0</div></div></div>
+      <table id="log" class="mt"></table>
+      <button class="btn ghost small mt" id="export">Exporter le suivi (CSV)</button>
+    </div>
+  </main>
+  <script src="config.js"></script>
+  <script src="logic.js"></script>
+  <script>
+    const $ = s => document.querySelector(s);
+    const KEY = 'gradi_admin_log';
+    const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } };
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    let lastCode = '', lastPhone = '';
+
+    function drawLog() {
+      const log = load();
+      $('#n').textContent = log.length;
+      $('#sum').textContent = GradiLogic.fmtFCFA(log.reduce((a, x) => a + x.price, 0));
+      $('#log').innerHTML = '<tr><th>Date</th><th>Boutique</th><th>Plan</th><th class="r">Prix</th></tr>' +
+        log.slice().reverse().slice(0, 30).map(x => '<tr><td>' + new Date(x.date).toLocaleDateString('fr-FR') + '</td><td>' + esc(x.name || x.phone) + '</td><td>' + x.plan + ' ' + x.months + 'm</td><td class="r">' + GradiLogic.fmtNumber(x.price) + '</td></tr>').join('');
+    }
+
+    $('#gen').onclick = async () => {
+      const phone = $('#a_phone').value.trim(), plan = $('#a_plan').value, months = parseInt($('#a_months').value, 10);
+      if (phone.replace(/\D/g, '').length < 8) return alert('Numéro de téléphone incomplet');
+      const code = await makeActivationCode(phone, plan, months);
+      const price = GradiLogic.subscriptionPrice(plan === 'S' ? 'standard' : 'pro', months, GRADI_CONFIG.PRICES);
+      lastCode = code; lastPhone = phone;
+      $('#code').textContent = code;
+      $('#info').textContent = (plan === 'S' ? 'Standard' : 'Pro') + ' · ' + months + ' mois · ' + GradiLogic.fmtFCFA(price) + ' · valable uniquement pour le téléphone ' + phone;
+      $('#result').style.display = 'block';
+      const log = load();
+      log.push({ date: Date.now(), phone, name: $('#a_name').value.trim(), plan: plan === 'S' ? 'Standard' : 'Pro', months, price, code, ref: $('#a_ref').value.trim() });
+      localStorage.setItem(KEY, JSON.stringify(log));
+      drawLog();
+    };
+    $('#copy').onclick = () => navigator.clipboard.writeText(lastCode).then(() => alert('Code copié'));
+    $('#wa').onclick = () => {
+      const msg = 'Merci pour votre paiement ! Votre code d\'activation Gradi : ' + lastCode + '\nDans Gradi : menu ⚙️ > Abonnements > saisissez le code.';
+      window.open(GradiLogic.waLink(lastPhone, msg, GRADI_CONFIG.COUNTRY_CODE), '_blank', 'noopener');
+    };
+    $('#export').onclick = () => {
+      const rows = [['date', 'boutique', 'telephone', 'plan', 'mois', 'prix', 'code', 'reference']]
+        .concat(load().map(x => [new Date(x.date).toISOString(), x.name, x.phone, x.plan, x.months, x.price, x.code, x.ref]));
+      const csv = rows.map(r => r.map(v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      a.download = 'gradi-suivi.csv'; a.click();
+    };
+    drawLog();
+  </script>
+</body>
+</html>
